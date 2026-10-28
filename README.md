@@ -122,17 +122,7 @@ All imputation, encoding, feature engineering, and model fitting will occur insi
 
 Kaggle evaluates submissions using root mean squared error between the logarithms of predicted and observed sale prices:
 
-$$
-\operatorname{LogRMSE}
-=
-\sqrt{
-\frac{1}{n}
-\sum_{i=1}^{n}
-\left[
-\log(\widehat{y}_i)-\log(y_i)
-\right]^2
-}.
-$$
+$$\operatorname{LogRMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left( \log(\widehat{y}_i) - \log(y_i) \right)^2}$$
 
 Lower values indicate better performance. This metric penalizes large errors while making proportional errors on lower- and higher-priced homes more comparable. We may also report mean absolute error as a secondary, dollar-scale diagnostic, but logged-price RMSE will determine the main comparison.
 
