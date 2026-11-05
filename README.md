@@ -243,3 +243,40 @@ We will reconsider the plan if a pipeline consistently fails to outperform the n
 - [Team GitHub repository](https://github.com/nchamp22/STAT-486-Project)
 - [scikit-learn `RandomForestRegressor` documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html)
 - [scikit-learn `GradientBoostingRegressor` documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html)
+
+## Checkpoint: Data and Reference Result — November 5, 2026
+
+### Data
+
+We downloaded the official data from Kaggle's [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview) competition.
+
+We currently have:
+
+- `train.csv`: 1,460 labeled houses
+- `test.csv`: 1,459 houses without sale prices
+- `sample_submission.csv`: Kaggle's required submission format
+- `data_description.txt`: descriptions of the variables
+
+The data contains 79 predictors, including numeric and categorical variables. Several columns contain missing values that will need to be handled in the modeling pipelines.
+
+The raw data is stored locally in `data/raw/` and excluded from GitHub using `.gitignore`. The files must be downloaded directly from Kaggle.
+
+### Evaluation plan
+
+We use an 80/20 training-validation split with `random_state=307`. This produced 1,168 training observations and 292 validation observations.
+
+Our evaluation metric is RMSE on `log1p(SalePrice)`, which matches the Kaggle competition metric. The split is created before fitting the model, and the Kaggle test data are not used during training or validation.
+
+We will be sure that all future preprocessing steps will be fitted only on the training data to avoid leakage.
+
+### First runnable result
+
+Our first reference model predicts the mean logged sale price for every house. This is a simple benchmark that doesn't use the housing predictors.
+
+- [Data and reference-result notebook](data_checkpoint.ipynb)
+- **Validation log-RMSE:** 0.410480
+- **Training observations:** 1,168
+- **Validation observations:** 292
+- **Generated submission:** `outputs/baseline_submission.csv`
+
+The reference model predicts a sale price of approximately $166,716.73 for every test observation. Its validation score provides a minimum benchmark for later models. Our next step is to build a preprocessing pipeline for missing and categorical values, and then a Random Forest model using the same validation split and metric.
