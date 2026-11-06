@@ -1,7 +1,9 @@
 # Data and Reference Result
 
 **Checkpoint:** November 5, 2026, by 11:59 PM Mountain Time  
+
 **Team:** Chase Nielsen, Noah Champagne, and Gunnar Griffith
+
 **Date:**  November 5, 2026
 
 Use any prompts that help you describe your progress. Add a dated entry to the root `README.md` of your team's repository and link the relevant code and output there; this file is optional supporting material.
