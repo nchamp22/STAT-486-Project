@@ -6,8 +6,6 @@
 
 **Date:**  November 5, 2026
 
-Use any prompts that help you describe your progress. Add a dated entry to the root `README.md` of your team's repository and link the relevant code and output there; this file is optional supporting material.
-
 ## Data
 
 - **Where did the data come from, and how did you obtain or prepare them?** 
