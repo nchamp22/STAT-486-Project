@@ -280,3 +280,82 @@ Our first reference model predicts the mean logged sale price for every house. T
 - **Generated submission:** `outputs/baseline_submission.csv`
 
 The reference model predicts a sale price of approximately $166,716.73 for every test observation. Its validation score provides a minimum benchmark for later models. Our next step is to build a preprocessing pipeline for missing and categorical values, and then a Random Forest model using the same validation split and metric.
+
+
+## Checkpoint: Data and Reference Result — November 12, 2026
+
+### Data
+
+The official competition data were downloaded directly from Kaggle.
+
+The project currently uses the following files:
+
+| File | Description |
+|---|---|
+| `train.csv` | 1,460 houses with known sale prices |
+| `test.csv` | 1,459 houses without sale prices |
+| `sample_submission.csv` | Kaggle's required submission format |
+| `data_description.txt` | Descriptions of the competition variables |
+
+The dataset contains 79 predictors, including numeric and categorical variables. Several predictors contain missing values that require preprocessing before model training.
+
+Raw competition data are stored locally in `data/raw/` and excluded from GitHub through `.gitignore`. Users must download the official competition files directly from Kaggle.
+
+---
+
+### Modeling Pipeline
+
+The project follows a reproducible workflow from raw competition data to Kaggle submission.
+
+1. **Raw Data:** Load the official competition datasets from `data/raw/`.
+2. **Preparation:** Handle missing values, encode categorical variables, and prepare model predictors.
+3. **Local Validation:** Evaluate predictions using the fixed 80/20 split and log-RMSE metric.
+4. **Training:** Fit the selected model using the prepared training data.
+5. **Inference:** Generate predictions for the competition test dataset.
+6. **Submission:** Export predictions using Kaggle's required submission format.
+
+### Code and Reproducibility
+
+- **Data and Reference Notebook:** [data_checkpoint.ipynb](data_checkpoint.ipynb)
+- **Raw Data Directory:** `data/raw/`
+- **Output Directory:** `outputs/`
+- **Run Configuration:** `random_state=307`, 80/20 validation split, log-RMSE.
+
+**Run Command:**
+
+```bash
+jupyter notebook data_checkpoint.ipynb
+```
+
+The notebook should be executed sequentially to reproduce the reference result.
+
+---
+
+### Validation Results
+
+| Metric | Result |
+|---|---:|
+| Validation Log-RMSE | 0.410480 |
+| Training Observations | 1,168 |
+| Validation Observations | 292 |
+| Predicted Sale Price | $166,716.73 |
+
+### First Kaggle Submission: Random Forest
+
+The first predictive-model submission was generated using a Random Forest regression pipeline.
+
+**Submission File:** `outputs/rf_submission.csv`
+
+**Submission File Details:**
+- Predictions: 1,459
+- Columns: `Id`, `SalePrice`
+- Missing predictions: 0
+- Average predicted sale price: $175,991.10
+
+**Kaggle Results:**
+- Submission Link: https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/submissions#
+- Kaggle Score: 0.14381
+
+
+
+
