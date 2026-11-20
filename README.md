@@ -1,4 +1,4 @@
-# STAT 486 Final Project Proposal
+# STAT 486 Final Project
 
 ## House Prices: Comparing Reproducible Regression Pipelines
 
@@ -14,7 +14,11 @@
 
 ## Executive summary
 
-This project will investigate whether a gradient-boosting pipeline with engineered housing features improves sale-price predictions over a random-forest pipeline in Kaggle's *House Prices: Advanced Regression Techniques* competition. We will construct two meaningfully different, reproducible machine-learning pipelines; evaluate them using the same local validation design and Kaggle's logged-price root mean squared error; submit predictions from both pipelines; and analyze the types of homes that produce the largest errors. The project emphasizes careful preprocessing, leakage prevention, reproducibility, and interpretation rather than leaderboard rank alone.
+This project investigates whether a gradient-boosting pipeline with engineered housing features improves sale-price predictions over a random-forest pipeline in Kaggle's *House Prices: Advanced Regression Techniques* competition.
+
+We are building two meaningfully different, reproducible machine-learning pipelines and evaluating them using the same local validation design and Kaggle's logged-price root mean squared error. We will compare local and Kaggle results, submit predictions from both pipelines, and examine the homes that produce the largest prediction errors.
+
+The project emphasizes careful preprocessing, leakage prevention, reproducibility, and interpretation rather than leaderboard rank alone.
 
 ## Research question and purpose
 
@@ -24,338 +28,478 @@ How much can a second, meaningfully different machine-learning pipeline improve 
 
 ### Motivation
 
-Residential sale prices reflect a complex combination of numerical and categorical characteristics. This project gives our team an opportunity to examine how missing-data treatment, categorical encoding, feature engineering, and model choice affect predictive performance on realistic tabular data. Beyond comparing scores, we want to identify where each model succeeds or fails and determine whether improvements are consistent across different price ranges and property types.
+Residential sale prices depend on a complex combination of numerical and categorical characteristics. This project allows our team to examine how missing-data treatment, categorical encoding, feature engineering, and model choice affect predictive performance on realistic tabular data.
 
-### Initial expectation
+Beyond comparing scores, we want to identify where each model succeeds or fails and determine whether improvements are consistent across different kinds of homes.
 
-We expect a gradient-boosting pipeline with engineered features to achieve lower local validation error and a lower Kaggle score than the random-forest pipeline. The evidence may instead show that the improvement is small, unstable across validation folds, or concentrated among particular price ranges or types of homes. A weaker second pipeline would still provide useful evidence about the value of feature engineering and model choice.
+### Expected result
 
-### Unit of observation
+We expect gradient boosting with engineered housing features to outperform the random-forest pipeline because boosting can model complicated nonlinear relationships while correcting errors across successive trees.
 
-Each observation represents one residential property sold in Ames, Iowa.
+### Unit of analysis
 
-## Chosen project route
+Each observation represents one residential property sale in Ames, Iowa.
 
-- [ ] **Route A:** Develop and test something new in an ML method or system
-- [x] **Route B:** Enter a Kaggle competition with two meaningfully different pipelines
-- [ ] **Route C:** Build a dataset and use it in a reproducible ML pipeline
+## Project route
 
-Route B fits our question because it provides a clearly defined regression task, a fixed evaluation metric, official training and test data, and an external leaderboard score. The dataset is also small enough to process on our personal computers before the December 10 deadline. Instructor approval of the competition and the two proposed pipeline designs is pending.
+We selected **Route B: Kaggle competition**.
 
-## Data source and access
+Our work includes:
 
-### Competition data
+- A simple reference prediction
+- A random-forest pipeline
+- A gradient-boosting pipeline with engineered features
+- Consistent local validation
+- At least two valid Kaggle submissions
+- A comparison of local and public leaderboard results
+- An investigation of important errors and limitations
 
-We will use the data from Kaggle's [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview) competition. The dataset contains 79 explanatory variables describing residential properties in Ames, Iowa. Relevant fields include lot size, neighborhood, overall quality, year built, above-ground living area, basement characteristics, garage characteristics, and room counts. The response variable is `SalePrice`, and `Id` identifies each property.
+The two main pipelines differ substantively in their model type and feature representation. The second pipeline is not simply a minor hyperparameter adjustment to the first.
 
-The official files are:
+## Data
 
-- `train.csv`: labeled training observations
-- `test.csv`: unlabeled observations for Kaggle inference
-- `data_description.txt`: variable definitions
-- `sample_submission.csv`: required submission structure
+### Source
 
-Each team member will join the competition, accept its rules, and download the official files. The data and computational requirements are feasible on personal computers. Raw competition data will not be committed to Git; instead, the README will explain how authorized users can obtain and place the files locally.
+The data come from Kaggle's [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview) competition.
 
-### Rules and responsible use
+The competition data describe residential properties in Ames, Iowa. The training data contain the target variable `SalePrice`, while the test data omit the target and are used to create Kaggle submissions.
 
-We will follow the Kaggle competition rules and the course requirements. Private collaboration will remain within the registered team. We will not redistribute restricted competition data or use the data for commercial purposes. External notebooks, tutorials, code, or modeling ideas used in the project will be cited clearly. We will remain within Kaggle's submission limit.
+### Available files
 
-### Anticipated data-quality issues
+The competition provides the following main files:
 
-The dataset includes:
+- `train.csv`
+- `test.csv`
+- `sample_submission.csv`
+- `data_description.txt`
 
-- Missing values
+The training dataset contains 1,460 observations and 81 columns, including the target variable. The test dataset contains 1,459 observations and 80 columns.
+
+### Data access
+
+Each team member can obtain the data by joining the Kaggle competition and downloading the competition files. The files should then be placed in:
+
+```text
+data/raw/
+```
+
+The raw competition files are excluded from Git because teammates can obtain identical copies directly from Kaggle.
+
+### Data considerations
+
+The dataset contains:
+
 - Numerical and categorical predictors
-- Skewed distributions
+- Missing values
+- Variables where missingness represents the absence of a feature
+- Skewed numerical variables
 - Rare categorical levels
-- Potential outliers
-- Highly correlated predictors
-- Missing values that indicate the absence of a feature rather than an unknown measurement
+- Variables measured on different scales
+- A positively skewed target variable
 
-For example, a missing garage or basement field may mean that the property does not have that feature. Our preprocessing will distinguish structural absence from ordinary missingness where the data documentation supports that interpretation. Every learned preprocessing step will be fitted only on the appropriate training data to prevent leakage.
+Missing values must be interpreted carefully. For example, a missing garage-related value may mean that the property has no garage rather than that the value was recorded incorrectly.
 
-## Modeling plan
-
-### Naive reference model
-
-Our simplest credible reference will predict the median training-set log sale price for every observation and then transform that value back to dollars. This creates a reproducible benchmark that uses no housing characteristics. Both machine-learning pipelines should substantially outperform this reference.
-
-### Pipeline 1: Random-forest pipeline
-
-Pipeline 1 will serve as the primary machine-learning baseline:
-
-1. Load the official training and test files.
-2. Separate `SalePrice` and `Id` from the predictors.
-3. Impute numerical variables using medians learned from the current training fold.
-4. Impute categorical variables using the most frequent training-fold category or a documented explicit missing category.
-5. One-hot encode categorical predictors while handling previously unseen categories safely.
-6. Fit a `RandomForestRegressor` to predict log-transformed `SalePrice`.
-7. Evaluate the pipeline using logged-price RMSE.
-8. Refit the selected configuration on all available labeled data.
-9. Transform predictions back to dollars and create a valid `Id,SalePrice` submission file.
-
-### Pipeline 2: Gradient boosting with engineered features
-
-Pipeline 2 will differ substantively in both its model and feature representation. It will use gradient boosting and engineered predictors intended to summarize related housing characteristics. Candidate features include:
-
-- Total finished square footage
-- Total bathroom count
-- Total porch area
-- Property age at sale
-- Years since remodeling
-- Indicators for the presence of a garage, basement, fireplace, or pool
-
-The second pipeline will use the same leakage-safe preprocessing structure as Pipeline 1, but it will fit a gradient-boosting regressor to the revised feature set. This design will test whether sequentially correcting residual errors and supplying domain-informed summary variables reduces logged-price prediction error.
-
-## Validation and evaluation
-
-### Local validation design
-
-We will reserve 20% of the labeled observations as an untouched local holdout set. The remaining 80% will serve as the development set. Within that development set, we will use the same fixed five-fold cross-validation splits for both pipelines to guide model selection and assess stability.
-
-After choosing each pipeline's configuration, we will fit it on the full 80% development set and evaluate it once on the untouched 20% holdout set. Using identical partitions for both pipelines will support a direct comparison.
-
-All imputation, encoding, feature engineering, and model fitting will occur inside each training fold. Validation-fold and holdout observations will never be used to learn preprocessing rules or tune model settings.
-
-### Primary metric
+### Competition metric
 
 Kaggle evaluates submissions using root mean squared error between the logarithms of predicted and observed sale prices:
 
-$$LogRMSE = \sqrt{\frac{1}{n} \sum_{i=1}^{n} \left( \log(\widehat{y}_i) - \log(y_i) \right)^2}$$
+$$
+\operatorname{LogRMSE}
+=
+\sqrt{
+\frac{1}{n}
+\sum_{i=1}^{n}
+\left[
+\log(\widehat{y}_i)-\log(y_i)
+\right]^2
+}.
+$$
 
-Lower values indicate better performance. This metric penalizes large errors while making proportional errors on lower- and higher-priced homes more comparable. We may also report mean absolute error as a secondary, dollar-scale diagnostic, but logged-price RMSE will determine the main comparison.
+Lower values indicate better predictive performance.
 
-### Comparison criteria
+## Modeling plan
 
-We will compare:
+### Reference model
 
-1. The median-log-price reference
-2. Pipeline 1: random forest
-3. Pipeline 2: gradient boosting with engineered features
+Our simplest reference predicts the mean training-set log sale price for every property.
 
-For each machine-learning pipeline, we will report:
+This is not intended to be competitive. It provides a basic reference score that confirms the data, metric, prediction transformation, and submission format are working correctly.
 
-- Mean five-fold cross-validation logged-price RMSE
-- Standard deviation of fold scores
-- Untouched holdout logged-price RMSE
+### Pipeline 1: Random forest
+
+The first full machine-learning pipeline uses a `RandomForestRegressor`.
+
+Planned preprocessing includes:
+
+- Median imputation for numerical predictors
+- Most-frequent imputation for categorical predictors
+- One-hot encoding for categorical predictors
+- Log transformation of `SalePrice`
+- A reproducible random seed
+
+The random forest serves as a credible tree-based baseline that can capture nonlinear relationships and interactions without extensive feature engineering.
+
+### Pipeline 2: Gradient boosting with engineered features
+
+The second pipeline uses gradient boosting and additional housing features.
+
+The substantive design changes include:
+
+- Replacing random forest with gradient boosting
+- Adding engineered aggregate features
+- Preserving preprocessing within a reproducible pipeline
+- Modeling the logarithm of `SalePrice`
+
+Candidate engineered features include:
+
+- Total finished square footage
+- Total bathrooms
+- Total porch area
+- Total outdoor area
+- Property age at sale
+- Years since remodeling
+- Total quality-related measures
+- Indicators for garages, basements, fireplaces, and other amenities
+
+This pipeline is meaningfully different because both the model-training procedure and feature representation change.
+
+## Evaluation plan
+
+### Local validation
+
+All model comparisons should use the same local validation design whenever possible.
+
+Our primary local evaluation will use a fixed training-validation split with `random_state=42`. The model will be trained only on the training portion, and performance will be measured on the held-out validation portion using log-RMSE.
+
+Cross-validation may also be used during model development, but the test data will not be used for model selection.
+
+### Leakage prevention
+
+To reduce the risk of data leakage:
+
+- The Kaggle test data will never be used for local model selection.
+- Imputation and categorical encoding will be fitted only on training data.
+- Feature engineering will use only information available for each property.
+- Preprocessing steps will be included inside fitted pipelines when practical.
+- `SalePrice` will be removed from the predictor matrix before training.
+- The same validation observations will be used for comparable model evaluations.
+
+### Kaggle comparison
+
+Each main pipeline will generate its own submission file. We will compare:
+
+- Local validation log-RMSE
 - Kaggle public leaderboard score
-- Difference from the naive reference
-- Difference between local and Kaggle performance
+- The direction and size of improvement between pipelines
+- Any discrepancy between local and Kaggle performance
 
-Evidence against our initial expectation would include Pipeline 2 producing similar or higher error than Pipeline 1, unstable results across folds, or an apparent local improvement that does not transfer to the Kaggle test set.
+Leaderboard rank will be treated as context rather than the sole measure of project quality.
 
-## Error analysis and communication
+## Error analysis
 
-We will inspect the largest underpredictions and overpredictions and compare error distributions across sale-price ranges. In particular, we will examine whether unusually inexpensive or expensive homes are harder to predict and whether either pipeline produces systematic residual patterns.
+We will examine the largest absolute log-price errors from the validation data.
 
-Planned outputs include:
+Potential error patterns include:
 
-- A table comparing all three models
-- Cross-validation score distributions
-- Predicted-versus-observed plots
-- Residual plots
-- Error summaries by sale-price range
-- Feature-importance plots for the fitted tree ensembles
-- A table of the homes with the largest prediction errors and their relevant characteristics
-- A comparison of local validation results with Kaggle leaderboard scores
+- Very expensive homes
+- Very inexpensive homes
+- Older homes
+- Recently remodeled homes
+- Homes with unusual living areas
+- Homes with missing amenities
+- Rare neighborhood or zoning categories
+- Properties with unusual combinations of quality and size
 
-Feature importance will be interpreted as a model-specific measure of predictive contribution, not as evidence of causation.
+This analysis will help us determine whether a better overall score reflects consistent improvement or improvement concentrated among particular properties.
 
 ## Reproducibility
 
-Each machine-learning pipeline will have its own configuration and reproducible run command. We will record the following for every experiment and submission:
-
-- Pipeline name and version
-- Git commit
-- Configuration file
-- Random seed
-- Run command
-- Cross-validation results
-- Holdout result
-- Submission filename and date
-- Kaggle public score
-
-The planned repository structure is:
+### Current repository structure
 
 ```text
 STAT-486-Project/
 ├── README.md
 ├── .gitignore
-├── configs/
 ├── data/
-├── notebooks/
-├── reports/
-├── src/
-└── submissions/
+│   └── raw/
+│       └── .gitkeep
+├── outputs/
+│   └── .gitkeep
+├── data_checkpoint.ipynb
+└── working_investigation.ipynb
 ```
 
-Source code will live in `src/`, configurations in `configs/`, exploratory work in `notebooks/`, figures and result tables in `reports/`, and generated Kaggle files in `submissions/`. The `data/` directory will contain instructions or placeholders only; raw Kaggle files will remain ignored by Git.
+Raw Kaggle data and generated submission files are excluded from Git when appropriate.
 
-Our first runnable result will be a script that:
+### General setup
 
-1. Loads the locally downloaded competition data.
-2. Runs the random-forest pipeline with five-fold cross-validation.
-3. Prints the mean and standard deviation of logged-price RMSE.
-4. Creates a correctly formatted Kaggle submission file.
+1. Clone the repository.
+2. Join the Kaggle competition.
+3. Download the competition files.
+4. Place the files in `data/raw/`.
+5. Install the required Python packages.
+6. Run the notebooks from top to bottom.
+
+Example:
+
+```bash
+git clone https://github.com/nchamp22/STAT-486-Project.git
+cd STAT-486-Project
+```
+
+The notebooks currently use common Python packages including:
+
+- `numpy`
+- `pandas`
+- `matplotlib`
+- `seaborn`
+- `scikit-learn`
 
 ## Team workflow
 
-Before each milestone, we will divide the work so all three members make substantive contributions to the pipelines, analysis, documentation, and presentation. Initial responsibilities will include data validation and preprocessing, Pipeline 1 implementation, Pipeline 2 implementation and feature engineering, and shared evaluation and error analysis.
+The team will share responsibility for:
 
-We will use GitHub branches and pull requests when practical. At least one teammate will review each major change before it is merged. We will also meet in person as needed to test the complete workflow and confirm that preprocessing, validation, training, inference, and submission generation work as intended.
+- Data preparation
+- Pipeline development
+- Validation
+- Kaggle submissions
+- Error analysis
+- Documentation
+- Presentation preparation
 
-Early instructor feedback would be especially helpful on whether the competition is approved and whether the proposed random-forest and gradient-boosting designs satisfy the requirement for two meaningfully different pipelines.
+Before pushing changes, team members should pull the most recent version of the repository. Code and notebook changes should be accompanied by clear commit messages.
 
-## Risks and backup scope
+## Risks and limitations
 
-### Main risks
+Potential challenges include:
 
-- Missing-value and categorical-encoding errors
-- Inconsistent transformations between training and test data
-- Data leakage during preprocessing or feature engineering
-- Overfitting caused by model tuning on a small dataset
-- Long training or tuning times
-- Kaggle access or submission-format problems
-- A mismatch between local validation and public leaderboard results
+- Missing-value handling
+- High-cardinality categorical features
+- Overfitting during feature engineering or tuning
+- Differences between local and Kaggle scores
+- Inconsistent software environments
+- Limited time for extensive hyperparameter searches
+- Correlated housing features
+- Difficulty interpreting complex ensemble models
 
-### Backup plan
+To manage these risks, we will use fixed seeds, consistent validation, simple reproducible preprocessing, and documented run procedures.
 
-If time or computational resources become limited, we will reduce the number of trees and the size of the tuning grid while retaining the same preprocessing and validation design. We will still complete two reproducible pipelines and at least one valid Kaggle submission from each. If necessary, feature engineering will be limited to a smaller, prespecified group of variables such as total square footage, total bathrooms, and property age.
+## Project milestones
 
-We will reconsider the plan if a pipeline consistently fails to outperform the naive reference, shows a large training-validation gap, requires more computation than is available, or cannot generate valid Kaggle submissions. Any pivot will be documented in the README with the date, supporting evidence, and reason for the change.
-
-## Milestones
-
-| Milestone | Target outcome |
-|---|---|
-| **Competition approval and repository setup** | Confirm competition and pipeline approval; establish repository structure and data instructions. |
-| **Reference and Pipeline 1** | Produce median-log-price reference, random-forest cross-validation results, and first valid Kaggle submission. |
-| **Pipeline 2** | Implement engineered features and gradient boosting; produce second valid Kaggle submission. |
-| **Evaluation and error analysis** | Compare validation, holdout, and Kaggle results; analyze residuals and difficult observations. |
-| **Final communication** | Complete README, report, figures, reproducibility checks, and presentation. |
+| Date | Milestone | Status |
+|---|---|---|
+| October 27, 2026 | Project proposal | Complete |
+| November 5, 2026 | Data and reference result | Complete |
+| November 12, 2026 | First full pipeline and Kaggle submission | Complete |
+| November 19, 2026 | Evidence and interpretation | Complete |
+| Late November 2026 | Error analysis and model refinement | In progress |
+| December 8 or 10, 2026 | Class presentation | Upcoming |
+| December 10, 2026 | Final repository submission | Upcoming |
 
 ## Sources
 
-- [Kaggle competition overview and evaluation](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview)
-- [Kaggle competition data and variable descriptions](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/data)
-- [Kaggle competition rules](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/rules)
-- [Team GitHub repository](https://github.com/nchamp22/STAT-486-Project)
-- [scikit-learn `RandomForestRegressor` documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html)
-- [scikit-learn `GradientBoostingRegressor` documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html)
-
-## Checkpoint: Data and Reference Result — November 5, 2026
-
-### Data
-
-We downloaded the official data from Kaggle's [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview) competition.
-
-We currently have:
-
-- `train.csv`: 1,460 labeled houses
-- `test.csv`: 1,459 houses without sale prices
-- `sample_submission.csv`: Kaggle's required submission format
-- `data_description.txt`: descriptions of the variables
-
-The data contains 79 predictors, including numeric and categorical variables. Several columns contain missing values that will need to be handled in the modeling pipelines.
-
-The raw data is stored locally in `data/raw/` and excluded from GitHub using `.gitignore`. The files must be downloaded directly from Kaggle.
-
-### Evaluation plan
-
-We use an 80/20 training-validation split with `random_state=307`. This produced 1,168 training observations and 292 validation observations.
-
-Our evaluation metric is RMSE on `log1p(SalePrice)`, which matches the Kaggle competition metric. The split is created before fitting the model, and the Kaggle test data are not used during training or validation.
-
-We will be sure that all future preprocessing steps will be fitted only on the training data to avoid leakage.
-
-### First runnable result
-
-Our first reference model predicts the mean logged sale price for every house. This is a simple benchmark that doesn't use the housing predictors.
-
-- [Data and reference-result notebook](data_checkpoint.ipynb)
-- **Validation log-RMSE:** 0.410480
-- **Training observations:** 1,168
-- **Validation observations:** 292
-- **Generated submission:** `outputs/baseline_submission.csv`
-
-The reference model predicts a sale price of approximately $166,716.73 for every test observation. Its validation score provides a minimum benchmark for later models. Our next step is to build a preprocessing pipeline for missing and categorical values, and then a Random Forest model using the same validation split and metric.
-
-
-## Checkpoint: Data and Reference Result — November 12, 2026
-
-### Data
-
-The official competition data were downloaded directly from Kaggle.
-
-The project currently uses the following files:
-
-| File | Description |
-|---|---|
-| `train.csv` | 1,460 houses with known sale prices |
-| `test.csv` | 1,459 houses without sale prices |
-| `sample_submission.csv` | Kaggle's required submission format |
-| `data_description.txt` | Descriptions of the competition variables |
-
-The dataset contains 79 predictors, including numeric and categorical variables. Several predictors contain missing values that require preprocessing before model training.
-
-Raw competition data are stored locally in `data/raw/` and excluded from GitHub through `.gitignore`. Users must download the official competition files directly from Kaggle.
+- [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview)
+- [House Prices competition data](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/data)
+- [House Prices evaluation metric](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview/evaluation)
+- [Scikit-learn documentation](https://scikit-learn.org/stable/)
 
 ---
 
-### Modeling Pipeline
+# Checkpoint: Data and Reference Result
 
-The project follows a reproducible workflow from raw competition data to Kaggle submission.
+**Date:** November 5, 2026  
+**Team:** Noah Champagne, Gunnar Griffith, and Chase Nielsen  
+**Route:** B — Kaggle competition
 
-1. **Raw Data:** Load the official competition datasets from `data/raw/`.
-2. **Preparation:** Handle missing values, encode categorical variables, and prepare model predictors.
-3. **Local Validation:** Evaluate predictions using the fixed 80/20 split and log-RMSE metric.
-4. **Training:** Fit the selected model using the prepared training data.
-5. **Inference:** Generate predictions for the competition test dataset.
-6. **Submission:** Export predictions using Kaggle's required submission format.
+## Data
 
-### Code and Reproducibility
+The data come from Kaggle's *House Prices: Advanced Regression Techniques* competition. Each team member can obtain the same files directly from the competition page.
 
-- **Data and Reference Notebook:** [data_checkpoint.ipynb](data_checkpoint.ipynb)
-- **Raw Data Directory:** `data/raw/`
-- **Output Directory:** `outputs/`
-- **Run Configuration:** `random_state=307`, 80/20 validation split, log-RMSE.
+The available files are:
 
-**Run Command:**
+- `train.csv`
+- `test.csv`
+- `sample_submission.csv`
+- `data_description.txt`
 
-```bash
-jupyter notebook data_checkpoint.ipynb
+The training data contain 1,460 observations and 81 columns, including `SalePrice`. The test data contain 1,459 observations and 80 columns.
+
+The raw data are stored locally in `data/raw/` and excluded from Git. The tracked `.gitkeep` file preserves the directory structure for teammates.
+
+No additional data need to be collected. Future cleaning will include missing-value treatment, categorical encoding, and selected feature engineering.
+
+## Evaluation plan
+
+We use log-RMSE because it matches the Kaggle competition metric and reduces the disproportionate influence of very expensive homes.
+
+For the initial result, we used a fixed 80/20 training-validation split with `random_state=42`.
+
+The split produced:
+
+- 1,168 training observations
+- 292 validation observations
+
+The mean logged sale price was calculated using the training portion only. This avoids using validation outcomes when constructing the reference prediction.
+
+## First runnable result
+
+The first runnable result is available in [`data_checkpoint.ipynb`](data_checkpoint.ipynb).
+
+The reference model predicts the same value—the mean training-set log sale price—for every property.
+
+| Model | Validation log-RMSE | Training rows | Validation rows |
+|---|---:|---:|---:|
+| Mean log-price reference | 0.410480 | 1,168 | 292 |
+
+The notebook also generated a valid Kaggle submission file with the required columns:
+
+- `Id`
+- `SalePrice`
+
+The first predictions were approximately `$166,716.73` for every test observation.
+
+### Interpretation
+
+The local validation score of `0.410480` is intentionally weak because the reference model ignores all housing characteristics. However, it confirms that:
+
+- The data load correctly
+- The target transformation is correct
+- The metric works
+- The submission has the required format
+- Predictions can be converted back to dollar values
+
+### Next step
+
+The next step is to fit the first full machine-learning pipeline using preprocessing and a random forest. Its performance will be compared against the reference model using the same validation design.
+
+---
+
+# Checkpoint: First Pipeline and Kaggle Submission
+
+**Date:** November 12, 2026  
+**Team:** Noah Champagne, Gunnar Griffith, and Chase Nielsen  
+**Route:** B — Kaggle competition
+
+## Pipeline 1: Random forest
+
+The first full pipeline uses a random-forest regressor with preprocessing for both numerical and categorical variables.
+
+The pipeline includes:
+
+- Median imputation for numerical predictors
+- Most-frequent imputation for categorical predictors
+- One-hot encoding for categorical predictors
+- A random-forest regression model
+- Training on the logarithm of `SalePrice`
+- Conversion of predictions back to dollar values for submission
+
+The code and output are available in [`working_investigation.ipynb`](working_investigation.ipynb).
+
+## First Kaggle result
+
+The first valid random-forest submission received a Kaggle score of:
+
+```text
+0.14381
 ```
 
-The notebook should be executed sequentially to reproduce the reference result.
+A later random-forest submission improved the score to:
+
+```text
+0.13960
+```
+
+Both scores substantially improve on the constant reference submission score of:
+
+```text
+0.41637
+```
+
+### Interpretation
+
+The large improvement over the reference model shows that housing characteristics contain substantial information about sale prices.
+
+The random forest captures nonlinear relationships and interactions that the constant reference cannot represent. The improved random-forest submission also demonstrates that preprocessing and model configuration affect prediction quality.
+
+### Next step
+
+The next step is to build a meaningfully different second pipeline using gradient boosting and engineered housing features. We will compare it with the random forest using both local validation and Kaggle results.
 
 ---
 
-### Validation Results
+# Checkpoint: Evidence and Interpretation
 
-| Metric | Result |
-|---|---:|
-| Validation Log-RMSE | 0.410480 |
-| Training Observations | 1,168 |
-| Validation Observations | 292 |
-| Predicted Sale Price | $166,716.73 |
+**Date:** November 19, 2026  
+**Team:** Noah Champagne, Gunnar Griffith, and Chase Nielsen  
+**Route:** B — Kaggle competition
 
-### First Kaggle Submission: Random Forest
+## Evidence so far
 
-The first predictive-model submission was generated using a Random Forest regression pipeline.
+We compared the reference submission, the random-forest pipeline, and the gradient-boosting pipeline using Kaggle's log-RMSE metric. Lower scores are better.
 
-**Submission File:** `outputs/rf_submission.csv`
+| Pipeline | Substantive design | Kaggle log-RMSE |
+|---|---|---:|
+| Mean log-price reference | Constant prediction for every property | 0.41637 |
+| Random forest | Imputation, one-hot encoding, and random-forest regression | 0.13960 |
+| Gradient boosting | Gradient boosting with engineered housing features | **0.13263** |
 
-**Submission File Details:**
-- Predictions: 1,459
-- Columns: `Id`, `SalePrice`
-- Missing predictions: 0
-- Average predicted sale price: $175,991.10
+The gradient-boosting pipeline improved the Kaggle score from `0.13960` to `0.13263`.
 
-**Kaggle Results:**
-- Submission Link: https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/submissions#
-- Kaggle Score: 0.14381
+The absolute improvement was:
 
+$$
+0.13960-0.13263=0.00697.
+$$
 
+The relative reduction in Kaggle error was approximately:
 
+$$
+\frac{0.13960-0.13263}{0.13960}\times100
+\approx 5.0\%.
+$$
 
+The code, model construction, output, and submission generation are available in [`working_investigation.ipynb`](working_investigation.ipynb).
+
+The Kaggle competition and submission results are available from the [House Prices competition page](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/overview).
+
+## Pipeline comparison
+
+The second pipeline made two substantive changes:
+
+1. It replaced the random-forest model with gradient boosting.
+2. It added engineered housing features that summarize property size, age, bathrooms, outdoor space, and amenities.
+
+The gradient-boosting submission received a Kaggle score of `0.13263`, compared with the best random-forest score of `0.13960`. This is evidence that the second pipeline improved predictive performance.
+
+However, the model type and feature representation changed at the same time. Therefore, the current results do not show how much of the improvement came from gradient boosting and how much came from feature engineering.
+
+## Interpretation
+
+The results changed our thinking because the random forest was already much stronger than the constant reference, but the second pipeline still produced a meaningful improvement.
+
+This suggests that model choice and feature representation both matter for these data. It also shows that improvements beyond a reasonable tree-based baseline are possible without relying only on extensive hyperparameter tuning.
+
+The gradient-boosting score is currently the team's strongest Kaggle result.
+
+## Informative limitation
+
+The main limitation is that the current comparison changes both the model and the features simultaneously.
+
+Because of this, we cannot yet make a clean causal claim that gradient boosting alone produced the entire improvement. The engineered features may account for part of the score reduction.
+
+Another limitation is that the public Kaggle score represents performance on only part of the hidden test data. A lower public score does not guarantee the same improvement on the private leaderboard.
+
+## Next steps
+
+Our next steps are to:
+
+1. Compare random forest and gradient boosting using the same feature set.
+2. Compare models with and without engineered features.
+3. Record local validation results beside the Kaggle scores.
+4. Investigate the largest validation errors.
+5. Check whether expensive, unusual, or rare homes produce larger errors.
+6. Confirm that both pipelines can be rerun from a clean environment.
+7. Improve notebook labels, comments, and run instructions.
+8. Prepare final tables and figures for the report and presentation.
+
+These comparisons will help separate the effect of model choice from the effect of feature engineering and strengthen the conclusions we can draw from the project.
